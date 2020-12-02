@@ -207,9 +207,9 @@ arr = list(filter(lambda s: s, input.split("\n")))
 # Part 1
 def part1():
     for i in range(len(arr)):
+        x = int(arr[i])
         for j in range(len(arr)):
             if i != j:
-                x = int(arr[i])
                 y = int(arr[j])
                 if (x + y) == 2020:
                     print(x * y)
@@ -219,15 +219,21 @@ def part1():
 # Part 2
 def part2():
     for i in range(len(arr)):
+        x = int(arr[i])
         for j in range(len(arr)):
+            if i == j:
+                continue
+            y = int(arr[j])
+            if x + y > 2020:
+                continue  # Speed up
             for k in range(len(arr)):
-                if (i != j) and (i != k) and (j != k):
-                    x = int(arr[i])
-                    y = int(arr[j])
-                    z = int(arr[k])
-                    if (x + y + z) == 2020:
-                        print(x * y * z)
-                        return
+                if i == k or j == k:
+                    continue
+                assert (i != j) and (i != k) and (j != k)
+                z = int(arr[k])
+                if (x + y + z) == 2020:
+                    print(x * y * z)
+                    return
     print("None found")
 
 part1()
