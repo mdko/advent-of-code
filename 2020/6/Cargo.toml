@@ -1,0 +1,7 @@
+[package]
+name = "puzzle"
+version = "0.1.0"
+authors = ["Michael Christensen <chmdko@gmail.com>"]
+edition = "2018"
+
+[dependencies]
