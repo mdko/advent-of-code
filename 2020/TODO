@@ -4,10 +4,19 @@ Languages to use:
 * Java
 * C#
 * BF
-* Scheme/Common Lisp
-* Racket
+* Common Lisp
 * Prolog
 * Swift
 * Go
 * Verilog
 * Hack
+* PHP
+* Ruby
+* {Chez, MIT, Chicken} Scheme
+* Ada
+* Modula
+* Oberon
+* Smalltalk
+* Fortrain
+* Zarf
+* Assembly

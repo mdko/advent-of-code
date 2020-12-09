@@ -5,3 +5,4 @@ Used:
   4. Clojure (without `leiningen`)
   5. Scala (without `sbt`)
   6. Rust (**with** `rust`)
+  7. Racket
