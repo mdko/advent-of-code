@@ -5,11 +5,12 @@ main :-
     part1(Lines),
     part2(Lines).
 
-part1(Lines) :-
+part1(Lines):-
     check(Lines).
 
 part2(Lines) :-
-    check(Lines).
+    contiguous(Lines, 3199139634, Res),
+    write(Res), nl.
 
 get_lines(Lines) :-
     open('input', read, Stream),
@@ -21,9 +22,42 @@ check([H|T]) :-
     nth0(25, [H|T], X),  % 0-indexed
     get_sums(M, Sums),
     (
-        member(X, Sums), check(T);
-        write(X), nl
+      member(X, Sums), check(T);
+      write(X), nl  % I'd like to actually return this value
     ).
+
+contiguous(L, Target, Res) :-
+    get_sublist_with_sum(L, Target, M),
+    min_member(M, X),
+    max_member(M, Y),
+    Res is X + Y.
+
+drop_last([], []).
+drop_last([_|[]], []).
+drop_last([H|T], [H|Res]) :-
+    drop_last(T, Res).
+
+% This works
+find_sublist_sum([], _, []).
+find_sublist_sum(L, Target, L) :- sum(L, Target).
+find_sublist_sum(L, Target, N) :-
+    drop_last(L, M),
+    find_sublist_sum(M, Target, N).
+
+is_empty(List) :- not(member(_, List)).
+
+% TODO figure out how to do this
+get_sublist_with_sum([], _, []).
+get_sublist_with_sum([H|T], Target, M) :-
+    (
+      find_sublist_sum([H|T], Target, M), not(is_empty(M));
+      get_sublist_with_sum(T, Target, M)
+    ).
+
+sum([], 0).
+sum([H|T], Res) :-
+    sum(T, N),
+    Res is H + N.
 
 take(_, [], []).
 take(0, _, []).
