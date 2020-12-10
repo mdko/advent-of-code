@@ -6,7 +6,6 @@ Languages to use:
 * Common Lisp
 * Prolog
 * Swift
-* Go
 * Verilog
 * Hack
 * PHP
@@ -19,3 +18,5 @@ Languages to use:
 * Fortran
 * Zarf
 * Assembly
+* Javascript
+* Forth
