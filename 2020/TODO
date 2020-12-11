@@ -4,11 +4,7 @@ Languages to use:
 * C#
 * BF
 * Common Lisp
-* Prolog
-* Swift
 * Verilog
-* Hack
-* PHP
 * Ruby
 * {Chez, MIT, Chicken} Scheme
 * Ada
@@ -17,6 +13,8 @@ Languages to use:
 * Smalltalk
 * Fortran
 * Zarf
+* Forth
 * Assembly
 * Javascript
-* Forth
+* Swift
+* Hack

@@ -56,12 +56,11 @@ func part1(jolts []int) {
 }
 
 func part2(jolts []int) {
-	// count := traverse(jolts, 0)
-	count := count_paths_fast(jolts)
+	count := count_paths(jolts)
 	fmt.Println(count)
 }
 
-func count_paths_fast(jolts []int) int {
+func count_paths(jolts []int) int {
 	i := len(jolts) - 2
 	npaths := make([]int, len(jolts))
 	copy(npaths, jolts)
@@ -90,27 +89,4 @@ func count_paths_fast(jolts []int) int {
 		i--
 	}
 	return npaths[0]
-}
-
-/* This is incredibly inefficient, but should work */
-func traverse(jolts []int, i int) int {
-	if i == len(jolts)-1 {
-		return 1
-	} else {
-		count := 0
-		j := i + 1
-		for {
-			if j >= len(jolts) {
-				break
-			}
-			diff := jolts[j] - jolts[i]
-			if diff < 4 {
-				count += traverse(jolts, j)
-			} else {
-				break
-			}
-			j++
-		}
-		return count
-	}
 }
