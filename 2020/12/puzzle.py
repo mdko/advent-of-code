@@ -27,15 +27,6 @@ class Command(IntEnum):
 def bitwidth(n):
     return pyrtl.as_wires(n).bitwidth
 
-def turns(n):
-    # I would replace with a floordivision if I could.
-    # I would also just use a conditional_assignment with block,
-    # but currently PyRTL doesn't support nested conditionals.
-    w = pyrtl.WireVector(bitwidth(len(Direction)))
-    w <<= pyrtl.select(n == 90, 1, pyrtl.select(n == 180, 2, pyrtl.select(n == 270, 3, 0)))
-    return w
-
-
 LARGEST_VALUE = 10000  # NOTE: making sure this is large enough was important during debugging (was getting wrong answer because not enough room)
 MAX_INSTRUCTIONS = 1000
 
@@ -44,33 +35,13 @@ DIR_BITWIDTH = bitwidth(len(Direction) - 1)
 VAL_BITWIDTH = bitwidth(LARGEST_VALUE)
 INSTR_BITWIDTH = bitwidth(MAX_INSTRUCTIONS)
 
-# State
-im = pyrtl.MemBlock(bitwidth=CMD_BITWIDTH + VAL_BITWIDTH, addrwidth=INSTR_BITWIDTH, name='im')
-pc = pyrtl.Register(INSTR_BITWIDTH, 'pc')
-facing = pyrtl.Register(DIR_BITWIDTH, 'facing')
-longitude = pyrtl.Register(VAL_BITWIDTH, 'longitude')
-latitude = pyrtl.Register(VAL_BITWIDTH, 'latitude')
-
-# Combinational logic
-instruction = im[pc]
-cmd, value = pyrtl.chop(instruction, CMD_BITWIDTH, VAL_BITWIDTH)
-
-# Sequential logic:
-with pyrtl.conditional_assignment:
-    with (cmd == Command.NORTH) | ((cmd == Command.FORWARD) & (facing == Direction.NORTH)):
-        latitude.next |= latitude + value
-    with (cmd == Command.SOUTH) | ((cmd == Command.FORWARD) & (facing == Direction.SOUTH)):
-        latitude.next |= latitude - value
-    with (cmd == Command.EAST) | ((cmd == Command.FORWARD) & (facing == Direction.EAST)):
-        longitude.next |= longitude + value
-    with (cmd == Command.WEST) | ((cmd == Command.FORWARD) & (facing == Direction.WEST)):
-        longitude.next |= longitude - value
-    with cmd == Command.RIGHT:
-        facing.next |= facing + turns(value)
-    with cmd == Command.LEFT:
-        facing.next |= facing - turns(value)
-
-pc.next <<= pyrtl.select(cmd == Command.HALT, pc, pc + 1)
+def turns(n):
+    # I would replace with a floordivision if I could.
+    # I would also just use a conditional_assignment with block,
+    # but currently PyRTL doesn't support nested conditionals.
+    w = pyrtl.WireVector(bitwidth(len(Direction)))
+    w <<= pyrtl.select(n == 90, 1, pyrtl.select(n == 180, 2, pyrtl.select(n == 270, 3, 0)))
+    return w
 
 def str_to_inst(s):
     op, value = s[0], int(s[1:])
@@ -114,10 +85,46 @@ def import_instructions(filename):
         arr = f.readlines()
         return {i: str_to_inst(s) for i, s in enumerate(arr)} 
 
-if __name__ == "__main__":
+# TODO finish this; tricky because need to do this t times
+def rotate(longitude, latitude, degrees, dir='right'):
+    # t = turns(degrees)
+    # new_long = pyrtl.WireVector(len(longitude))
+    # new_lat = pyrtl.WireVector(len(latitude))
+    return longitude, latitude
+
+def part1():
+    # State
+    im = pyrtl.MemBlock(bitwidth=CMD_BITWIDTH + VAL_BITWIDTH, addrwidth=INSTR_BITWIDTH, name='im')
+    pc = pyrtl.Register(INSTR_BITWIDTH, 'pc')
+    facing = pyrtl.Register(DIR_BITWIDTH, 'facing')
+    longitude = pyrtl.Register(VAL_BITWIDTH, 'longitude')
+    latitude = pyrtl.Register(VAL_BITWIDTH, 'latitude')
+
+    # Combinational logic
+    instruction = im[pc]
+    cmd, value = pyrtl.chop(instruction, CMD_BITWIDTH, VAL_BITWIDTH)
+
+    # Sequential logic:
+    with pyrtl.conditional_assignment:
+        with (cmd == Command.NORTH) | ((cmd == Command.FORWARD) & (facing == Direction.NORTH)):
+            latitude.next |= latitude + value
+        with (cmd == Command.SOUTH) | ((cmd == Command.FORWARD) & (facing == Direction.SOUTH)):
+            latitude.next |= latitude - value
+        with (cmd == Command.EAST) | ((cmd == Command.FORWARD) & (facing == Direction.EAST)):
+            longitude.next |= longitude + value
+        with (cmd == Command.WEST) | ((cmd == Command.FORWARD) & (facing == Direction.WEST)):
+            longitude.next |= longitude - value
+        with cmd == Command.RIGHT:
+            facing.next |= facing + turns(value)
+        with cmd == Command.LEFT:
+            facing.next |= facing - turns(value)
+
+    pc.next <<= pyrtl.select(cmd == Command.HALT, pc, pc + 1)
+
+    # Simulate it!
     sim = pyrtl.Simulation(
         register_value_map={
-            facing: Direction.EAST
+            facing: Direction.EAST,
         },
         memory_value_map={
           im: import_instructions("input")
@@ -134,5 +141,70 @@ if __name__ == "__main__":
     # print(f"Longitude: {long_to_str(long)}")
     # sim.tracer.render_trace()
 
-    # Part 1
     print(manhattan_distance(lat, long))
+
+def part2():
+    # State
+    im = pyrtl.MemBlock(bitwidth=CMD_BITWIDTH + VAL_BITWIDTH, addrwidth=INSTR_BITWIDTH, name='im')
+    pc = pyrtl.Register(INSTR_BITWIDTH, 'pc')
+    ship_longitude = pyrtl.Register(VAL_BITWIDTH, 'ship_longitude')
+    ship_latitude = pyrtl.Register(VAL_BITWIDTH, 'ship_latitude')
+    waypoint_rel_longitude = pyrtl.Register(VAL_BITWIDTH, 'waypoint_relative_longitude')
+    waypoint_rel_latitude = pyrtl.Register(VAL_BITWIDTH, 'waypoint_relative_latitude')
+
+    # Combinational logic
+    instruction = im[pc]
+    cmd, value = pyrtl.chop(instruction, CMD_BITWIDTH, VAL_BITWIDTH)
+
+    # Sequential logic:
+    with pyrtl.conditional_assignment:
+        with (cmd == Command.NORTH):
+            waypoint_rel_latitude.next |= waypoint_rel_latitude + value
+        with (cmd == Command.SOUTH):
+            waypoint_rel_latitude.next |= waypoint_rel_latitude - value
+        with (cmd == Command.EAST):
+            waypoint_rel_longitude.next |= waypoint_rel_longitude + value
+        with (cmd == Command.WEST):
+            waypoint_rel_longitude.next |= waypoint_rel_longitude - value
+        with cmd == Command.RIGHT:
+            res = rotate(waypoint_rel_longitude, waypoint_rel_latitude, value)
+            waypoint_rel_longitude.next |= res[0]
+            waypoint_rel_latitude.next |= res[1]
+        with cmd == Command.LEFT:
+            res = rotate(waypoint_rel_longitude, waypoint_rel_latitude, value, dir='left')
+            waypoint_rel_longitude.next |= res[0]
+            waypoint_rel_latitude.next |= res[1]
+        with cmd == Command.FORWARD:
+            # TODO should I used signed_add, signed_mult?
+            ship_longitude.next |= ship_longitude + (waypoint_rel_longitude * value)
+            ship_latitude.next |= ship_latitude + (waypoint_rel_latitude * value)
+
+    pc.next <<= pyrtl.select(cmd == Command.HALT, pc, pc + 1)
+
+    # Simulate it!
+    sim = pyrtl.Simulation(
+        register_value_map={
+            waypoint_rel_longitude: 10,
+            waypoint_rel_latitude: 1,
+        },
+        memory_value_map={
+          im: import_instructions("input")
+        }
+    )
+    while sim.inspect(cmd) != Command.HALT:
+        sim.step({})
+
+    lat = sim.inspect(ship_latitude)
+    long = sim.inspect(ship_longitude)
+    # print(f"Facing: {Direction(fv)}")
+    # print(f"Latitude: {lat_to_str(lat)}")
+    # print(f"Longitude: {long_to_str(long)}")
+    # sim.tracer.render_trace()
+
+    print(manhattan_distance(lat, long))
+
+
+if __name__ == "__main__":
+    part1()
+    pyrtl.reset_working_block()
+    part2()
