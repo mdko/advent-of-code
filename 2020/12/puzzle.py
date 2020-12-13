@@ -1,4 +1,5 @@
 from enum import IntEnum
+import unittest
 import pyrtl
 
 # The order of these is actually important,
@@ -125,9 +126,11 @@ def manhattan_distance(lat, long):
 def import_instructions(filename):
     with open(filename, "r") as f:
         arr = f.readlines()
-        return {i: str_to_inst(s) for i, s in enumerate(arr)} 
+        m = {i: str_to_inst(s) for i, s in enumerate(arr)} 
+        assert m[len(arr) - 1] == str_to_inst("H0")
+        return m
 
-def part1():
+def part1(ins_map):
     # State
     im = pyrtl.MemBlock(bitwidth=CMD_BITWIDTH + VAL_BITWIDTH, addrwidth=INSTR_BITWIDTH, name='im')
     pc = pyrtl.Register(INSTR_BITWIDTH, 'pc')
@@ -162,7 +165,7 @@ def part1():
             facing: Direction.EAST,
         },
         memory_value_map={
-          im: import_instructions("input")
+          im: ins_map,
         }
     )
     while sim.inspect(cmd) != Command.HALT:
@@ -178,7 +181,7 @@ def part1():
 
     print(manhattan_distance(lat, long))
 
-def part2():
+def part2_machine():
     # State
     im = pyrtl.MemBlock(bitwidth=CMD_BITWIDTH + VAL_BITWIDTH, addrwidth=INSTR_BITWIDTH, name='im')
     pc = pyrtl.Register(INSTR_BITWIDTH, 'pc')
@@ -214,6 +217,17 @@ def part2():
 
     pc.next <<= pyrtl.select(cmd == Command.HALT, pc, pc + 1)
 
+    return (cmd == Command.HALT)
+
+def part2(ins_map):
+    done = part2_machine()
+    block = pyrtl.working_block()
+    waypoint_rel_longitude = block.get_wirevector_by_name('waypoint_relative_longitude')
+    waypoint_rel_latitude = block.get_wirevector_by_name('waypoint_relative_latitude')
+    ship_latitude = block.get_wirevector_by_name('ship_latitude')
+    ship_longitude = block.get_wirevector_by_name('ship_longitude')
+    im = block.get_memblock_by_name('im')
+
     # Simulate it!
     sim = pyrtl.Simulation(
         register_value_map={
@@ -221,10 +235,10 @@ def part2():
             waypoint_rel_latitude: 1,
         },
         memory_value_map={
-          im: import_instructions("input")
+          im: ins_map,
         }
     )
-    while sim.inspect(cmd) != Command.HALT:
+    while not sim.inspect(done):
         sim.step({})
 
     lat = sim.inspect(ship_latitude)
@@ -236,8 +250,101 @@ def part2():
 
     print(manhattan_distance(lat, long))
 
+class TestRotate(unittest.TestCase):
+    def setUp(self):
+        pyrtl.reset_working_block()
+        block = pyrtl.working_block()
+        self.done = part2_machine()
+        self.waypoint_rel_longitude = block.get_wirevector_by_name('waypoint_relative_longitude')
+        self.waypoint_rel_latitude = block.get_wirevector_by_name('waypoint_relative_latitude')
+        self.ship_latitude = block.get_wirevector_by_name('ship_latitude')
+        self.ship_longitude = block.get_wirevector_by_name('ship_longitude')
+        self.im = block.get_memblock_by_name('im')
+    
+    def neg_val(self, sim, wire):
+        return pyrtl.val_to_signed_integer(sim.inspect(wire), VAL_BITWIDTH)
+    
+    def _run(self, *ins):
+        self.sim = pyrtl.Simulation(
+            register_value_map={
+                self.waypoint_rel_longitude: 10,
+                self.waypoint_rel_latitude: 1,
+            },
+            memory_value_map={
+                self.im: {i: str_to_inst(s) for i, s in enumerate(ins)} 
+            }
+        )
+        while not self.sim.inspect(self.done):
+            self.sim.step({})
+
+    def test_rotate_left_0(self):
+        self._run(
+            "L0",
+            "H0",
+        )
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), 10)
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), 1)
+    
+    def test_rotate_left_90(self):
+        self._run(
+            "L90",
+            "H0",
+        )
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), -1)
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), 10)
+
+    def test_rotate_left_180(self):
+        self._run(
+            "L180",
+            "H0",
+        )
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), -10)
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), -1)
+
+    def test_rotate_left_270(self):
+        self._run(
+            "L270",
+            "H0",
+        )
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), 1)
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), -10)
+
+    def test_rotate_right_0(self):
+        self._run(
+            "R0",
+            "H0",
+        )
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), 10)
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), 1)
+    
+    def test_rotate_right_90(self):
+        self._run(
+            "R90",
+            "H0",
+        )
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), 1)
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), -10)
+
+    def test_rotate_right_180(self):
+        self._run(
+            "R180",
+            "H0",
+        )
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), -10)
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), -1)
+
+    def test_rotate_right_270(self):
+        self._run(
+            "R270",
+            "H0",
+        )
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), -1)
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), 10)
+    
+    # TODO insert tests for the other instructions
 
 if __name__ == "__main__":
-    part1()
+    ins_map = import_instructions("example-input")
+    part1(ins_map)
     pyrtl.reset_working_block()
-    part2()
+    part2(ins_map)
