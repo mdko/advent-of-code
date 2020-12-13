@@ -57,40 +57,75 @@ def str_to_inst(s):
     }
     return (op_map[op] << VAL_BITWIDTH) + value
 
-def as_twos_compl(v, width):
-    if format(v, f"0{width}b")[0] == '1':
-        return v - (1 << width)
-    else:
-        return v
+def rotate(longitude, latitude, degrees, left):
+    """
+        The idea behind this as follows.
+        Given a latitude of 'a' and a longitue of 'b', when you rotate left by 90 degrees,
+        this is how your latitude and longitude change:
+
+        Going left:
+            Start #1   #2   #3   #4 (original)
+        Long: b   -a   -b    a    b
+        Lat:  a    b   -a   -b    a
+
+        Going right:
+            Start #1   #2   #3   #4 (original)
+        Long: b    a   -b   -a    b
+        Lat:  a   -b   -a    b    a
+    """
+    new_long = pyrtl.WireVector(len(longitude))
+    new_lat = pyrtl.WireVector(len(latitude))
+    t = turns(degrees)
+    with pyrtl.conditional_assignment:
+        with left:
+            with t == 0:
+                new_long |= longitude
+                new_lat |= latitude
+            with t == 1:
+                new_long |= 0 - latitude
+                new_lat |= longitude
+            with t == 2:
+                new_long |= 0 - longitude
+                new_lat |= 0 - latitude
+            with t == 3:
+                new_long |= latitude
+                new_lat |= 0 - longitude
+        with pyrtl.otherwise:
+            with t == 0:
+                new_long |= longitude
+                new_lat |= latitude
+            with t == 1:
+                new_long |= latitude
+                new_lat |= 0 - longitude
+            with t == 2:
+                new_long |= 0 - longitude
+                new_lat |= 0 - latitude
+            with t == 3:
+                new_long |= 0 - latitude
+                new_lat |= longitude
+    return new_long, new_lat
 
 def lat_to_str(l):
-    v = as_twos_compl(l, VAL_BITWIDTH)
+    v = pyrtl.val_to_signed_integer(l, VAL_BITWIDTH)
     if v < 0:
         return f"{abs(v)}{Direction.SOUTH}"
     else:
         return f"{v}{Direction.NORTH}"
 
 def long_to_str(l):
-    v = as_twos_compl(l, VAL_BITWIDTH)
+    v = pyrtl.val_to_signed_integer(l, VAL_BITWIDTH)
     if v < 0:
         return f"{abs(v)}{Direction.WEST}"
     else:
         return f"{v}{Direction.EAST}"
 
 def manhattan_distance(lat, long):
-    return abs(as_twos_compl(lat, VAL_BITWIDTH)) + abs(as_twos_compl(long, VAL_BITWIDTH))
+    return abs(pyrtl.val_to_signed_integer(lat, VAL_BITWIDTH)) + abs(pyrtl.val_to_signed_integer(long, VAL_BITWIDTH))
 
 def import_instructions(filename):
     with open(filename, "r") as f:
         arr = f.readlines()
         return {i: str_to_inst(s) for i, s in enumerate(arr)} 
-
-# TODO finish this; tricky because need to do this t times
-def rotate(longitude, latitude, degrees, dir='right'):
-    # t = turns(degrees)
-    # new_long = pyrtl.WireVector(len(longitude))
-    # new_lat = pyrtl.WireVector(len(latitude))
-    return longitude, latitude
 
 def part1():
     # State
@@ -155,6 +190,7 @@ def part2():
     # Combinational logic
     instruction = im[pc]
     cmd, value = pyrtl.chop(instruction, CMD_BITWIDTH, VAL_BITWIDTH)
+    rotate_res = rotate(waypoint_rel_longitude, waypoint_rel_latitude, value, cmd == Command.LEFT)
 
     # Sequential logic:
     with pyrtl.conditional_assignment:
@@ -167,15 +203,12 @@ def part2():
         with (cmd == Command.WEST):
             waypoint_rel_longitude.next |= waypoint_rel_longitude - value
         with cmd == Command.RIGHT:
-            res = rotate(waypoint_rel_longitude, waypoint_rel_latitude, value)
-            waypoint_rel_longitude.next |= res[0]
-            waypoint_rel_latitude.next |= res[1]
+            waypoint_rel_longitude.next |= rotate_res[0]
+            waypoint_rel_latitude.next |= rotate_res[1]
         with cmd == Command.LEFT:
-            res = rotate(waypoint_rel_longitude, waypoint_rel_latitude, value, dir='left')
-            waypoint_rel_longitude.next |= res[0]
-            waypoint_rel_latitude.next |= res[1]
+            waypoint_rel_longitude.next |= rotate_res[0]
+            waypoint_rel_latitude.next |= rotate_res[1]
         with cmd == Command.FORWARD:
-            # TODO should I used signed_add, signed_mult?
             ship_longitude.next |= ship_longitude + (waypoint_rel_longitude * value)
             ship_latitude.next |= ship_latitude + (waypoint_rel_latitude * value)
 
