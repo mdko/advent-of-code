@@ -28,7 +28,7 @@ class Command(IntEnum):
 def bitwidth(n):
     return pyrtl.as_wires(n).bitwidth
 
-LARGEST_VALUE = 10000  # NOTE: making sure this is large enough was important during debugging (was getting wrong answer because not enough room)
+LARGEST_VALUE = 10000000000  # NOTE: making sure this is large enough was important during debugging (was getting wrong answer because not enough room)
 MAX_INSTRUCTIONS = 1000
 
 CMD_BITWIDTH = bitwidth(len(Command) - 1)
@@ -250,7 +250,7 @@ def part2(ins_map):
 
     print(manhattan_distance(lat, long))
 
-class TestRotate(unittest.TestCase):
+class TestInstructions(unittest.TestCase):
     def setUp(self):
         pyrtl.reset_working_block()
         block = pyrtl.working_block()
@@ -264,11 +264,11 @@ class TestRotate(unittest.TestCase):
     def neg_val(self, sim, wire):
         return pyrtl.val_to_signed_integer(sim.inspect(wire), VAL_BITWIDTH)
     
-    def _run(self, *ins):
+    def _run(self, *ins, waypoint_origin=(10, 1)):
         self.sim = pyrtl.Simulation(
             register_value_map={
-                self.waypoint_rel_longitude: 10,
-                self.waypoint_rel_latitude: 1,
+                self.waypoint_rel_longitude: waypoint_origin[0],
+                self.waypoint_rel_latitude: waypoint_origin[1],
             },
             memory_value_map={
                 self.im: {i: str_to_inst(s) for i, s in enumerate(ins)} 
@@ -284,6 +284,17 @@ class TestRotate(unittest.TestCase):
         )
         self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), 10)
         self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), 1)
+        self.assertEqual(self.neg_val(self.sim, self.ship_longitude), 0)
+        self.assertEqual(self.neg_val(self.sim, self.ship_latitude), 0)
+        self._run(
+            "L0",
+            "H0",
+            waypoint_origin=(25, 3),
+        )
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), 25)
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), 3)
+        self.assertEqual(self.neg_val(self.sim, self.ship_longitude), 0)
+        self.assertEqual(self.neg_val(self.sim, self.ship_latitude), 0)
     
     def test_rotate_left_90(self):
         self._run(
@@ -292,6 +303,17 @@ class TestRotate(unittest.TestCase):
         )
         self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), -1)
         self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), 10)
+        self.assertEqual(self.neg_val(self.sim, self.ship_latitude), 0)
+        self.assertEqual(self.neg_val(self.sim, self.ship_longitude), 0)
+        self._run(
+            "L90",
+            "H0",
+            waypoint_origin=(25, 3),
+        )
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), -3)
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), 25)
+        self.assertEqual(self.neg_val(self.sim, self.ship_longitude), 0)
+        self.assertEqual(self.neg_val(self.sim, self.ship_latitude), 0)
 
     def test_rotate_left_180(self):
         self._run(
@@ -300,6 +322,17 @@ class TestRotate(unittest.TestCase):
         )
         self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), -10)
         self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), -1)
+        self.assertEqual(self.neg_val(self.sim, self.ship_longitude), 0)
+        self.assertEqual(self.neg_val(self.sim, self.ship_latitude), 0)
+        self._run(
+            "L180",
+            "H0",
+            waypoint_origin=(25, 3),
+        )
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), -25)
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), -3)
+        self.assertEqual(self.neg_val(self.sim, self.ship_longitude), 0)
+        self.assertEqual(self.neg_val(self.sim, self.ship_latitude), 0)
 
     def test_rotate_left_270(self):
         self._run(
@@ -308,6 +341,17 @@ class TestRotate(unittest.TestCase):
         )
         self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), 1)
         self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), -10)
+        self.assertEqual(self.neg_val(self.sim, self.ship_longitude), 0)
+        self.assertEqual(self.neg_val(self.sim, self.ship_latitude), 0)
+        self._run(
+            "L270",
+            "H0",
+            waypoint_origin=(25, 3),
+        )
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), 3)
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), -25)
+        self.assertEqual(self.neg_val(self.sim, self.ship_longitude), 0)
+        self.assertEqual(self.neg_val(self.sim, self.ship_latitude), 0)
 
     def test_rotate_right_0(self):
         self._run(
@@ -316,6 +360,17 @@ class TestRotate(unittest.TestCase):
         )
         self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), 10)
         self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), 1)
+        self.assertEqual(self.neg_val(self.sim, self.ship_longitude), 0)
+        self.assertEqual(self.neg_val(self.sim, self.ship_latitude), 0)
+        self._run(
+            "R0",
+            "H0",
+            waypoint_origin=(25, 3),
+        )
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), 25)
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), 3)
+        self.assertEqual(self.neg_val(self.sim, self.ship_longitude), 0)
+        self.assertEqual(self.neg_val(self.sim, self.ship_latitude), 0)
     
     def test_rotate_right_90(self):
         self._run(
@@ -324,6 +379,17 @@ class TestRotate(unittest.TestCase):
         )
         self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), 1)
         self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), -10)
+        self.assertEqual(self.neg_val(self.sim, self.ship_longitude), 0)
+        self.assertEqual(self.neg_val(self.sim, self.ship_latitude), 0)
+        self._run(
+            "R90",
+            "H0",
+            waypoint_origin=(25, 3),
+        )
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), 3)
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), -25)
+        self.assertEqual(self.neg_val(self.sim, self.ship_longitude), 0)
+        self.assertEqual(self.neg_val(self.sim, self.ship_latitude), 0)
 
     def test_rotate_right_180(self):
         self._run(
@@ -332,6 +398,17 @@ class TestRotate(unittest.TestCase):
         )
         self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), -10)
         self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), -1)
+        self.assertEqual(self.neg_val(self.sim, self.ship_longitude), 0)
+        self.assertEqual(self.neg_val(self.sim, self.ship_latitude), 0)
+        self._run(
+            "R180",
+            "H0",
+            waypoint_origin=(25, 3),
+        )
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), -25)
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), -3)
+        self.assertEqual(self.neg_val(self.sim, self.ship_longitude), 0)
+        self.assertEqual(self.neg_val(self.sim, self.ship_latitude), 0)
 
     def test_rotate_right_270(self):
         self._run(
@@ -340,11 +417,136 @@ class TestRotate(unittest.TestCase):
         )
         self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), -1)
         self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), 10)
+        self.assertEqual(self.neg_val(self.sim, self.ship_longitude), 0)
+        self.assertEqual(self.neg_val(self.sim, self.ship_latitude), 0)
+        self._run(
+            "R270",
+            "H0",
+            waypoint_origin=(25, 3),
+        )
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), -3)
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), 25)
+        self.assertEqual(self.neg_val(self.sim, self.ship_longitude), 0)
+        self.assertEqual(self.neg_val(self.sim, self.ship_latitude), 0)
     
-    # TODO insert tests for the other instructions
+    def test_north(self):
+        self._run(
+            "N5",
+            "H0",
+        )
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), 10)
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), 6)
+        self.assertEqual(self.neg_val(self.sim, self.ship_longitude), 0)
+        self.assertEqual(self.neg_val(self.sim, self.ship_latitude), 0)
+        self._run(
+            "N5",
+            "H0",
+            waypoint_origin=(25, 3),
+        )
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), 25)
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), 8)
+        self.assertEqual(self.neg_val(self.sim, self.ship_longitude), 0)
+        self.assertEqual(self.neg_val(self.sim, self.ship_latitude), 0)
+
+    def test_south(self):
+        self._run(
+            "S5",
+            "H0",
+        )
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), 10)
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), -4)
+        self.assertEqual(self.neg_val(self.sim, self.ship_latitude), 0)
+        self.assertEqual(self.neg_val(self.sim, self.ship_longitude), 0)
+        self._run(
+            "S5",
+            "H0",
+            waypoint_origin=(25, 3),
+        )
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), 25)
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), -2)
+        self.assertEqual(self.neg_val(self.sim, self.ship_longitude), 0)
+        self.assertEqual(self.neg_val(self.sim, self.ship_latitude), 0)
+
+    def test_east(self):
+        self._run(
+            "E5",
+            "H0",
+        )
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), 15)
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), 1)
+        self.assertEqual(self.neg_val(self.sim, self.ship_longitude), 0)
+        self.assertEqual(self.neg_val(self.sim, self.ship_latitude), 0)
+        self._run(
+            "E5",
+            "H0",
+            waypoint_origin=(25, 3),
+        )
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), 30)
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), 3)
+        self.assertEqual(self.neg_val(self.sim, self.ship_longitude), 0)
+        self.assertEqual(self.neg_val(self.sim, self.ship_latitude), 0)
+
+    def test_west(self):
+        self._run(
+            "W5",
+            "H0",
+        )
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), 5)
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), 1)
+        self.assertEqual(self.neg_val(self.sim, self.ship_longitude), 0)
+        self.assertEqual(self.neg_val(self.sim, self.ship_latitude), 0)
+        self._run(
+            "W5",
+            "H0",
+            waypoint_origin=(25, 3),
+        )
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), 20)
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), 3)
+        self.assertEqual(self.neg_val(self.sim, self.ship_longitude), 0)
+        self.assertEqual(self.neg_val(self.sim, self.ship_latitude), 0)
+ 
+    def test_one_forward_inst(self):
+        self._run(
+            "F5",
+            "H0",
+        )
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), 10)
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), 1)
+        self.assertEqual(self.neg_val(self.sim, self.ship_longitude), 50)
+        self.assertEqual(self.neg_val(self.sim, self.ship_latitude), 5)
+        self._run(
+            "F5",
+            "H0",
+            waypoint_origin=(25, 3),
+        )
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), 25)
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), 3)
+        self.assertEqual(self.neg_val(self.sim, self.ship_longitude), 125)
+        self.assertEqual(self.neg_val(self.sim, self.ship_latitude), 15)
+
+    def test_one_forward_two_inst(self):
+        self._run(
+            "F5",
+            "F10",
+            "H0",
+        )
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), 10)
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), 1)
+        self.assertEqual(self.neg_val(self.sim, self.ship_longitude), 150)
+        self.assertEqual(self.neg_val(self.sim, self.ship_latitude), 15)
+        self._run(
+            "F5",
+            "F10",
+            "H0",
+            waypoint_origin=(25, 3),
+        )
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_longitude), 25)
+        self.assertEqual(self.neg_val(self.sim, self.waypoint_rel_latitude), 3)
+        self.assertEqual(self.neg_val(self.sim, self.ship_longitude), 375)
+        self.assertEqual(self.neg_val(self.sim, self.ship_latitude), 45)
 
 if __name__ == "__main__":
-    ins_map = import_instructions("example-input")
+    ins_map = import_instructions("input")
     part1(ins_map)
     pyrtl.reset_working_block()
     part2(ins_map)
