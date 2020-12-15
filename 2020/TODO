@@ -8,13 +8,14 @@ Languages to use:
 * Ruby
 * {Chez, MIT, Chicken} Scheme
 * Ada
-* Modula
+* Modula-3
 * Oberon
 * Smalltalk
-* Fortran
 * Zarf
 * Forth
 * Assembly
 * Javascript
 * Swift
 * Hack
+* Pascal
+* Coq
