@@ -1,4 +1,3 @@
-
 module read_inputs
 ! Allows compiler to check that all variables are declared properly (otherwise treats them based on first letter of var)
 implicit none
@@ -53,11 +52,10 @@ module part1
 implicit none
 
 contains
-    subroutine part1_f (earliest, buses, len, res)
+    subroutine part1_f (earliest, buses, len)
         integer, intent(in) :: earliest
         integer, dimension(100), intent(in) :: buses
         integer, intent(in) :: len
-        integer, intent(out) :: res
         integer :: i
         integer :: bus
         integer :: nearby
@@ -74,20 +72,55 @@ contains
                 end if
             end if
         end do
-        res = (nearby - earliest) * bus  ! difference between chosen bus and earliest time we can depart, times bus number
+        print '(I10)', (nearby - earliest) * bus  ! difference between chosen bus and earliest time we can depart, times bus number
     end subroutine part1_f
 end module part1
+
+module part2
+contains
+    subroutine part2_f (buses, len)
+        integer, dimension(100), intent(in) :: buses
+        integer, intent(in) :: len
+        logical :: done
+        integer :: i
+        integer :: t
+
+        t = 0
+        toplevel: do
+            ! print '(I20)', t
+            done = .true.
+            inner: do i = 2, len
+                if (buses(i) .gt. t) then
+                    done = .false.
+                    exit inner  ! for efficiency
+                endif
+                if (buses(i) .ne. -1) then
+                    if (MOD((t + i - 1), buses(i)) .ne. 0) then
+                        done = .false.
+                        exit inner
+                    endif
+                end if
+            end do inner
+            if (done) then
+                exit toplevel
+            endif
+            t = t + buses(1)
+        end do toplevel
+
+        print '(I20)', t
+    end subroutine part2_f
+end module part2
 
 program puzzle
 use read_inputs
 use part1
+use part2
 implicit none
 
 integer :: len
 integer :: earliest
-integer :: res
 integer, dimension(100) :: buses
 call inputs (earliest, buses, len)
-call part1_f (earliest, buses, len, res)
-print '(I10)', res
+call part1_f (earliest, buses, len)
+call part2_f (buses, len)
 end program puzzle
