@@ -1,17 +1,16 @@
 Languages to use:
 * C++
-* Java
 * C#
 * BF
-* Common Lisp
-* Verilog
-* {Chez, MIT, Chicken} Scheme
 * Ada
+* Forth
+* Common Lisp
+* {Chez, MIT, Chicken} Scheme
 * Modula-3
 * Oberon
+* Verilog
 * Smalltalk
 * Zarf
-* Forth
 * Assembly
 * Javascript
 * Swift
