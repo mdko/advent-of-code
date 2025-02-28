@@ -11,6 +11,7 @@ contains
         integer, dimension(100), intent(out) :: buses
         character (len=1000) :: line
 
+        f = 10
         open(UNIT=f, FILE="input", STATUS="old")
 
         read(f, *) earliest
@@ -83,9 +84,11 @@ contains
         integer, intent(in) :: len
         logical :: done
         integer :: i
-        integer :: t
+        integer (kind=8) :: t
+        integer :: step
 
-        t = 0
+        t = 100000000000000
+        t = CEILING(REAL(t) / buses(1)) * buses(1)
         toplevel: do
             ! print '(I20)', t
             done = .true.
